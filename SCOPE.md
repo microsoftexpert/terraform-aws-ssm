@@ -1,4 +1,4 @@
-# tf-mod-aws-ssm — SCOPE
+# terraform-aws-ssm — SCOPE
 
 Composite **management** module for AWS Systems Manager (SSM) core primitives —
 Parameter Store, Documents, State Manager Associations, Patch Manager
@@ -40,40 +40,40 @@ The module manages **all** of the following (allow-list):
 
 Referenced by `arn`/`id`, never created here:
 
-- **KMS CMK** for `SecureString` encryption — supplied by `tf-mod-aws-kms`
+- **KMS CMK** for `SecureString` encryption — supplied by `terraform-aws-kms`
   via `kms_key_id` (accepts a key ID or ARN). Defaulting to `null` uses the
   AWS-managed `alias/aws/ssm` key.
 - **IAM instance profile / role** granting `AmazonSSMManagedInstanceCore` (or
   equivalent least-privilege policy) to EC2 targets — owned by
-  `tf-mod-aws-iam-role` (+ `tf-mod-aws-iam-policy`) and consumed by
-  `tf-mod-aws-ec2-instance` as `iam_instance_profile`. This module does **not**
+  `terraform-aws-iam-role` (+ `terraform-aws-iam-policy`) and consumed by
+  `terraform-aws-ec2-instance` as `iam_instance_profile`. This module does **not**
   create the instance profile; it documents the requirement (see the dedicated
   note below) because Session Manager access depends on it.
 - **EC2 instances / Auto Scaling Groups** targeted by associations, patch
   groups, and maintenance windows — referenced by instance ID or tag key/value
-  only, owned by `tf-mod-aws-ec2-instance` / `tf-mod-aws-autoscaling-group`.
+  only, owned by `terraform-aws-ec2-instance` / `terraform-aws-autoscaling-group`.
 - **S3 bucket** for association/maintenance-window command output logging —
-  referenced by name/ARN from `tf-mod-aws-s3-bucket`.
+  referenced by name/ARN from `terraform-aws-s3-bucket`.
 - **SNS topic** for maintenance-window task notifications — referenced by ARN
-  from `tf-mod-aws-sns` (Phase 2).
+  from `terraform-aws-sns` (Phase 2).
 - **CloudWatch Log Group** for Run Command output — referenced by name from
-  `tf-mod-aws-cloudwatch-log-group`.
+  `terraform-aws-cloudwatch-log-group`.
 - **Lambda functions / Step Functions state machines** invoked as maintenance
   window task targets — referenced by ARN only.
 - **Service role for maintenance window tasks** (`service_role_arn`) — IAM
-  role ARN from `tf-mod-aws-iam-role`; if omitted, AWS falls back to (and
+  role ARN from `terraform-aws-iam-role`; if omitted, AWS falls back to (and
   auto-creates, if absent) the SSM service-linked role.
 
 ## Consumes
 
 | Input | Type | Source module |
 |---|---|---|
-| `kms_key_id` | `string` (KMS key ID or ARN, optional) | `tf-mod-aws-kms` |
-| `iam_instance_profile` (documentation only — not a module variable) | ARN/name | `tf-mod-aws-iam-role` → `tf-mod-aws-ec2-instance` |
-| `output_s3_bucket_name` (per-association / per-task, optional) | `string` | `tf-mod-aws-s3-bucket` |
-| `notification_sns_arn` (per maintenance-window task, optional) | `string` | `tf-mod-aws-sns` (Phase 2) |
-| `service_role_arn` (per maintenance-window task, optional) | `string` | `tf-mod-aws-iam-role` |
-| `cloudwatch_log_group_name` (per maintenance-window task, optional) | `string` | `tf-mod-aws-cloudwatch-log-group` |
+| `kms_key_id` | `string` (KMS key ID or ARN, optional) | `terraform-aws-kms` |
+| `iam_instance_profile` (documentation only — not a module variable) | ARN/name | `terraform-aws-iam-role` → `terraform-aws-ec2-instance` |
+| `output_s3_bucket_name` (per-association / per-task, optional) | `string` | `terraform-aws-s3-bucket` |
+| `notification_sns_arn` (per maintenance-window task, optional) | `string` | `terraform-aws-sns` (Phase 2) |
+| `service_role_arn` (per maintenance-window task, optional) | `string` | `terraform-aws-iam-role` |
+| `cloudwatch_log_group_name` (per maintenance-window task, optional) | `string` | `terraform-aws-cloudwatch-log-group` |
 
 ## Required IAM permissions
 
@@ -82,7 +82,7 @@ Least-privilege actions the Terraform identity needs:
 | Action | Required for |
 |---|---|
 | `ssm:PutParameter`, `ssm:DeleteParameter`, `ssm:GetParameter`, `ssm:GetParameters`, `ssm:DescribeParameters`, `ssm:AddTagsToResource`, `ssm:RemoveTagsFromResource` | Parameter Store lifecycle + tagging |
-| `kms:Decrypt`, `kms:GenerateDataKey`, `kms:DescribeKey` | Reading/writing `SecureString` values encrypted under a CMK (grant is on the **KMS key policy**, supplied by `tf-mod-aws-kms`) |
+| `kms:Decrypt`, `kms:GenerateDataKey`, `kms:DescribeKey` | Reading/writing `SecureString` values encrypted under a CMK (grant is on the **KMS key policy**, supplied by `terraform-aws-kms`) |
 | `ssm:CreateDocument`, `ssm:DeleteDocument`, `ssm:DescribeDocument`, `ssm:UpdateDocument`, `ssm:UpdateDocumentDefaultVersion`, `ssm:ModifyDocumentPermission` | Document lifecycle + version management + sharing |
 | `ssm:CreateAssociation`, `ssm:DeleteAssociation`, `ssm:DescribeAssociation`, `ssm:UpdateAssociation` | State Manager association lifecycle |
 | `ssm:CreatePatchBaseline`, `ssm:DeletePatchBaseline`, `ssm:GetPatchBaseline`, `ssm:UpdatePatchBaseline` | Patch baseline lifecycle |
@@ -112,7 +112,7 @@ Least-privilege actions the Terraform identity needs:
     EC2 Messages endpoints** — either public egress (NAT/IGW) or VPC
     interface endpoints for `com.amazonaws.<region>.ssm`,
     `com.amazonaws.<region>.ssmmessages`, and
-    `com.amazonaws.<region>.ec2messages` (`tf-mod-aws-vpc-endpoint`) for
+    `com.amazonaws.<region>.ec2messages` (`terraform-aws-vpc-endpoint`) for
     fully private subnets.
   - The instance needs **IAM permission to call SSM** via one of two paths:
     1. **Default Host Management Configuration** (account/Region-level,
@@ -148,29 +148,29 @@ Least-privilege actions the Terraform identity needs:
 - **Region:** standard provider inheritance — no `region` variable in this
   module (SSM is not one of the CloudFront/WAFv2/ACM us-east-1 globals).
 
-### Session Manager IAM policy — dedicated note for `tf-mod-aws-ec2-instance`
+### Session Manager IAM policy — dedicated note for `terraform-aws-ec2-instance`
 
 Casey's standardizes on **AWS Systems Manager Session Manager** as the default
 method for interactive EC2 access, in preference to SSH with distributed key
 pairs and open port 22 — this eliminates inbound security-group rules,
 long-lived SSH keys, and bastion hosts entirely, which materially reduces the
 attack surface for NPI-adjacent workloads. This module does not create the
-instance profile itself (that is `tf-mod-aws-iam-role`'s job) but every
+instance profile itself (that is `terraform-aws-iam-role`'s job) but every
 EC2-facing example in this module's README wires the following pattern so the
 recommendation is visible at the point of use:
 
-1. `tf-mod-aws-iam-role` creates an EC2-trusted role with the AWS-managed
+1. `terraform-aws-iam-role` creates an EC2-trusted role with the AWS-managed
    policy **`AmazonSSMManagedInstanceCore`** attached (covers
    `ssmmessages:*`, `ec2messages:*`, and the minimum `ssm:UpdateInstance*` /
    `ssm:ListAssociations` / `ssm:GetDocument` actions the agent needs to
    register and poll for work) plus, if instance-level SSM parameter or KMS
    access is required, a scoped inline policy — never attach broader
    `AmazonSSMFullAccess`.
-2. `tf-mod-aws-iam-role` (or a paired `tf-mod-aws-iam-role` call) wraps the
+2. `terraform-aws-iam-role` (or a paired `terraform-aws-iam-role` call) wraps the
    role in an `aws_iam_instance_profile`.
-3. `tf-mod-aws-ec2-instance` consumes the instance profile **name** via its
+3. `terraform-aws-ec2-instance` consumes the instance profile **name** via its
    `iam_instance_profile` argument.
-4. This module (`tf-mod-aws-ssm`) then targets that instance (by ID or tag)
+4. This module (`terraform-aws-ssm`) then targets that instance (by ID or tag)
    with `aws_ssm_association` / patch group / maintenance window resources.
 
 Callers on newer accounts may instead enable **Default Host Management
@@ -184,13 +184,13 @@ instance/role, rather than an implicit account-wide default.
 
 | Output | Description | Consumed by |
 |---|---|---|
-| `id` | Map of parameter name → parameter `id` (the parameter name) for every entry in `var.parameters` | Application config lookups, `tf-mod-aws-ecs-service` (env/secrets references), `tf-mod-aws-lambda` |
-| `arn` | Map of parameter name → parameter ARN | `tf-mod-aws-iam-policy` (scoping `ssm:GetParameter` resource ARNs), `tf-mod-aws-ecs-service` (`valueFrom` for secrets) |
+| `id` | Map of parameter name → parameter `id` (the parameter name) for every entry in `var.parameters` | Application config lookups, `terraform-aws-ecs-service` (env/secrets references), `terraform-aws-lambda` |
+| `arn` | Map of parameter name → parameter ARN | `terraform-aws-iam-policy` (scoping `ssm:GetParameter` resource ARNs), `terraform-aws-ecs-service` (`valueFrom` for secrets) |
 | `name` | Map of parameter name → parameter name (identical to key, echoed for symmetry with other modules' `name` output) | Documentation / cross-references |
 | `version` | Map of parameter name → current parameter version (increments on every value update) | Drift detection, audit |
 | `tags_all` | Map of parameter name → merged tags (resource tags over provider `default_tags`) | Governance / audit |
 | `document_ids` | Map of document key → document `id` (the document name) | CLI/console cross-reference |
-| `document_arns` | Map of document key → document ARN | `aws_ssm_association.name`, `tf-mod-aws-ec2-instance` user-data bootstrapping references |
+| `document_arns` | Map of document key → document ARN | `aws_ssm_association.name`, `terraform-aws-ec2-instance` user-data bootstrapping references |
 | `document_names` | Map of document key → document name | `aws_ssm_association`, CLI/console cross-reference |
 | `document_tags_all` | Map of document key → merged tags | Governance / audit |
 | `association_ids` | Map of association key → `association_id` | Audit / drift-detection references |
@@ -199,7 +199,7 @@ instance/role, rather than an implicit account-wide default.
 | `patch_baseline_ids` / `patch_baseline_arns` | Map of baseline key → ID / ARN | `aws_ssm_patch_group` registration, Patch Manager console cross-reference |
 | `patch_baseline_tags_all` | Map of baseline key → merged tags | Governance / audit |
 | `patch_group_ids` | Map of patch-group key → composite id (`"<patch_group>,<baseline_id>"`) | Audit — `aws_ssm_patch_group` is not taggable and has no ARN |
-| `maintenance_window_ids` | Map of window key → `id` | `aws_ssm_maintenance_window_target` / `_task`, `tf-mod-aws-cloudwatch-alarm` (window compliance) — no ARN attribute exposed by this resource |
+| `maintenance_window_ids` | Map of window key → `id` | `aws_ssm_maintenance_window_target` / `_task`, `terraform-aws-cloudwatch-alarm` (window compliance) — no ARN attribute exposed by this resource |
 | `maintenance_window_tags_all` | Map of window key → merged tags | Governance / audit |
 | `maintenance_window_target_ids` | Map of target key → maintenance window target `id` | Wiring into `maintenance_window_tasks[*].targets` (`WindowTargetIds`) — not taggable, no ARN |
 | `maintenance_window_task_ids` | Map of task key → maintenance window task `id` | Audit / drift-detection references |
@@ -272,7 +272,7 @@ instance/role, rather than an implicit account-wide default.
 | Posture | Default | Opt-out |
 |---|---|---|
 | Parameter type | **`SecureString`** for every entry in `var.parameters` unless explicitly overridden | Set `type = "String"` (or `"StringList"`) per-parameter in the map; the variable's heredoc description documents this is for **non-secret values only** (e.g. feature flags, non-sensitive config) and is a per-parameter, explicit, visible opt-in — not a module-wide switch |
-| SecureString encryption key | `key_id = null` → AWS-managed `alias/aws/ssm` key | Supply `kms_key_id` (from `tf-mod-aws-kms`) for a customer-managed CMK with caller-controlled key policy and rotation |
+| SecureString encryption key | `key_id = null` → AWS-managed `alias/aws/ssm` key | Supply `kms_key_id` (from `terraform-aws-kms`) for a customer-managed CMK with caller-controlled key policy and rotation |
 | Parameter overwrite protection | `overwrite = false` on first create (provider default), preventing accidental clobber of an out-of-band parameter with the same name | Provider automatically flips to `true` for all subsequent Terraform-managed updates; no module override needed |
 | Document sharing (`permissions`) | Not set (private to the account) by default | Caller supplies a `permissions` block naming specific account IDs; the module does not support `"All"` (public) sharing — omitted from the schema entirely as a hard rail, since a public SSM document is a realistic NPI/config-leak vector |
 | Patch baseline OS targeting | **Required, no default** — caller must state `operating_system` explicitly | N/A — this is a safety rail, not a relaxable default (see Provider gotchas) |
@@ -301,8 +301,8 @@ instance/role, rather than an implicit account-wide default.
   `for_each`-driven internally to support N parameters per module call.
 - **EC2 instances, instance profiles, KMS keys, and S3/CloudWatch log
   destinations are deliberately excluded** — they live in
-  `tf-mod-aws-ec2-instance`, `tf-mod-aws-iam-role`, `tf-mod-aws-kms`, and
-  `tf-mod-aws-s3-bucket` / `tf-mod-aws-cloudwatch-log-group` respectively,
+  `terraform-aws-ec2-instance`, `terraform-aws-iam-role`, `terraform-aws-kms`, and
+  `terraform-aws-s3-bucket` / `terraform-aws-cloudwatch-log-group` respectively,
   keeping this module's blast radius to the Systems Manager control plane
   itself and avoiding a composite that reaches across unrelated service
   boundaries.

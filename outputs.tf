@@ -14,8 +14,8 @@ output "arn" {
  description = <<EOT
 Map of parameter name => parameter ARN
 (arn:aws:ssm:<region>:<account>:parameter/<name>, without the leading slash
-duplicated). Cross-resource reference type — consumed by tf-mod-aws-iam-policy
-(scoping ssm:GetParameter resource ARNs) and tf-mod-aws-ecs-service
+duplicated). Cross-resource reference type — consumed by terraform-aws-iam-policy
+(scoping ssm:GetParameter resource ARNs) and terraform-aws-ecs-service
 (secrets valueFrom).
 EOT
  value = { for k, p in aws_ssm_parameter.this: k => p.arn }
@@ -46,7 +46,7 @@ output "document_ids" {
 }
 
 output "document_arns" {
- description = "Map of document key => document ARN. Consumed by aws_ssm_association.name references and tf-mod-aws-ec2-instance user-data bootstrapping references."
+ description = "Map of document key => document ARN. Consumed by aws_ssm_association.name references and terraform-aws-ec2-instance user-data bootstrapping references."
  value = { for k, d in aws_ssm_document.this: k => d.arn }
 }
 
@@ -117,7 +117,7 @@ output "patch_group_ids" {
 ###############################################################################
 
 output "maintenance_window_ids" {
- description = "Map of window key => maintenance window id. Consumed by aws_ssm_maintenance_window_target / _task and tf-mod-aws-cloudwatch-alarm (window compliance). No arn attribute is exposed by this resource."
+ description = "Map of window key => maintenance window id. Consumed by aws_ssm_maintenance_window_target / _task and terraform-aws-cloudwatch-alarm (window compliance). No arn attribute is exposed by this resource."
  value = { for k, w in aws_ssm_maintenance_window.this: k => w.id }
 }
 

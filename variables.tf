@@ -83,7 +83,7 @@ variable "kms_key_id" {
  description = <<EOT
 Default KMS key ID or ARN used to encrypt every SecureString entry in
 var.parameters that does not set its own per-entry key_id. Null (default)
-uses the AWS-managed alias/aws/ssm key. Wire from tf-mod-aws-kms (arn output)
+uses the AWS-managed alias/aws/ssm key. Wire from terraform-aws-kms (arn output)
 for a customer-managed CMK with caller-controlled key policy and rotation.
 Ignored for String/StringList entries.
 EOT
@@ -243,7 +243,7 @@ Per-entry fields:
  - output_location: (Optional) S3 destination for command
  output.
  - s3_bucket_name: (Required) Bucket name — wire from
- tf-mod-aws-s3-bucket.
+ terraform-aws-s3-bucket.
  - s3_key_prefix: (Optional) Bucket prefix.
  - s3_region: (Optional) Bucket region.
  - wait_for_success_timeout_seconds: (Optional) Seconds to wait for Success.
@@ -665,7 +665,7 @@ Per-entry fields:
  of, if absent) the AWSServiceRoleForAmazonSSM
  service-linked role — an audit-relevant,
  account-level side effect worth flagging in
- change review. Wire from tf-mod-aws-iam-role
+ change review. Wire from terraform-aws-iam-role
  for an explicit, least-privilege role.
  - name / description: (Optional) Task display name/description.
  - targets: (Optional) InstanceIds or WindowTargetIds
